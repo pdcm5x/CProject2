@@ -10,5 +10,7 @@ typedef struct {
     pid_t pid;
     int startSeconds;
     int startNano;
+    int endingTimeSeconds;
+    int endingTimeNano;
 } PCB;
 #endif

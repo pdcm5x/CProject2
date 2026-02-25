@@ -11,10 +11,10 @@
  *main {
     *arg 1 = seconds
     *arg 2 = nanoseconds
-    *print worker pid
+    *print WORKER pid
     *print arguements
     *
-    *Worker starting, PID:6577 PPID:6576
+    *WORKER starting, PID:6577 PPID:6576
     *Called with:
     *Interval: 5 seconds, 500000 nanoseconds
     *
@@ -37,16 +37,16 @@
 int main(int argc, char *argv[]) {
    //Should be 3 arguements otherwise error
    if (argc != 3) {
-      fprintf(stderr, "Usage: ./worker seconds nanoseconds");
+      fprintf(stderr, "Usage: ./WORKER seconds nanoseconds");
       exit(1);
    }
 
    int seconds = atoi(argv[1]);
    int nanoseconds = atoi(argv[2]);
-   /*Worker starting, PID:6577 PPID:6576
+   /*WORKER starting, PID:6577 PPID:6576
    *Called with:
    *Interval: 5 seconds, 500000 nanoseconds*/
-   printf("Worker starting, PID:%d PPID:%d\n", getpid(), getppid());
+   printf("WORKER starting, PID:%d PPID:%d\n", getpid(), getppid());
    printf("Called with:\n");
    printf("Interval: %d seconds, %d nanoseconds\n", seconds, nanoseconds);
 
