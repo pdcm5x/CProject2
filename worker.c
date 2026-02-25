@@ -7,87 +7,69 @@
 #include <sys/shm.h>
 #include "clock.h"
 #include "shared.h"
-/*
- *main {
-    *arg 1 = seconds
-    *arg 2 = nanoseconds
-    *print WORKER pid
-    *print arguements
-    *
-    *WORKER starting, PID:6577 PPID:6576
-    *Called with:
-    *Interval: 5 seconds, 500000 nanoseconds
-    *
-    *attach to shared memory
-    *
-    *calculate term time
-    *
-    *wait true {
-       *WORKER PID:6577 PPID:6576
-       *SysClockS: 6 SysclockNano: 45000000 TermTimeS: 11 TermTimeNano: 500100
-       *--1 seconds have passed since starting
-       *check if time to terminate
-    *}
-    *WORKER PID:6577 PPID:6576
-    *SysClockS: 11 SysclockNano: 700000 TermTimeS: 11 TermTimeNano: 500100
-    *--Terminating
- *}
- */
-
 int main(int argc, char *argv[]) {
-   //Should be 3 arguements otherwise error
-   if (argc != 3) {
-      fprintf(stderr, "Usage: ./WORKER seconds nanoseconds");
-      exit(1);
-   }
+    // Validate arguments
+    if (argc != 3) {
+        fprintf(stderr, "Usage: ./WORKER seconds nanoseconds\n");
+        exit(1);
+    }
 
-   int seconds = atoi(argv[1]);
-   int nanoseconds = atoi(argv[2]);
-   /*WORKER starting, PID:6577 PPID:6576
-   *Called with:
-   *Interval: 5 seconds, 500000 nanoseconds*/
-   printf("WORKER starting, PID:%d PPID:%d\n", getpid(), getppid());
-   printf("Called with:\n");
-   printf("Interval: %d seconds, %d nanoseconds\n", seconds, nanoseconds);
+    int secInterval = atoi(argv[1]);
+    int nanoInterval = atoi(argv[2]);
 
+    // Print starting info
+    printf("WORKER starting, PID:%d PPID:%d\n", getpid(), getppid());
+    printf("Called with:\n");
+    printf("Interval: %d seconds, %d nanoseconds\n", secInterval, nanoInterval);
 
-   int shmid = shmget(SHM_KEY, SHM_SIZE, SHM_PERM);
-   if (shmid == -1) {
-      perror("shmget failed");
-      exit(1);
-   }
-   Clock *clock = (Clock *)shmat(shmid, NULL, 0);
-   if (clock == (void *) -1) {
-      perror("shmat failed");
-      exit(1);
-   }
-   unsigned int termSeconds = clock->seconds + seconds;
-   unsigned int termNanoseconds = clock->nanoseconds + nanoseconds;
+    // Attach to shared memory
+    int shmid = shmget(SHM_KEY, SHM_SIZE, SHM_PERM);
+    if (shmid == -1) {
+        perror("shmget failed");
+        exit(1);
+    }
 
-   if (termNanoseconds >= 1000000000) {
-      termSeconds += 1;
-      termNanoseconds -= 1000000000;
-   }
+    Clock *clock = (Clock *)shmat(shmid, NULL, 0);
+    if (clock == (void *)-1) {
+        perror("shmat failed");
+        exit(1);
+    }
 
-   unsigned int lastSeconds = clock->seconds;
-   unsigned int passedSeconds = 0;
-   while (1) {
-      //Check to stop loop
-      if (clock->seconds > termSeconds || (clock->nanoseconds >= termNanoseconds && clock->seconds == termSeconds)) {
-         printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
-         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoseconds);
-         printf("--Terminating\n");
-         break;
-      }
-      //Check if a second has passed.
-      if (clock->seconds - lastSeconds >= 1) {
-         passedSeconds += clock->seconds - lastSeconds;
-         printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
-         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoseconds);
-         printf("--%u seconds have passed since starting\n", passedSeconds);
-         lastSeconds = clock->seconds;
-      }
-   }
-   shmdt(clock);
-   return 0;
+    // Calculate termination time
+    unsigned int termSeconds = clock->seconds + secInterval;
+    unsigned int termNanoseconds = clock->nanoseconds + nanoInterval;
+    if (termNanoseconds >= 1000000000) {
+        termSeconds += 1;
+        termNanoseconds -= 1000000000;
+    }
+
+    unsigned int lastSecondCheck = clock->seconds;
+    unsigned int secondsPassed = 0;
+
+    // Wait loop until termination time
+    while (1) {
+        // Check if termination time reached
+        if (clock->seconds > termSeconds ||
+           (clock->seconds == termSeconds && clock->nanoseconds >= termNanoseconds)) {
+            printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
+            printf("SysClockS: %u SysClockNano: %u TermTimeS: %u TermTimeNano: %u\n",
+                   clock->seconds, clock->nanoseconds, termSeconds, termNanoseconds);
+            printf("--Terminating\n");
+            break;
+        }
+
+        // Print every second passed
+        if (clock->seconds - lastSecondCheck >= 1) {
+            secondsPassed += clock->seconds - lastSecondCheck;
+            printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
+            printf("SysClockS: %u SysClockNano: %u TermTimeS: %u TermTimeNano: %u\n",
+                   clock->seconds, clock->nanoseconds, termSeconds, termNanoseconds);
+            printf("--%u seconds have passed since starting\n", secondsPassed);
+            lastSecondCheck = clock->seconds;
+        }
+    }
+
+    // Detach shared memory
+    shmdt(clock);
+    return 0;
 }
