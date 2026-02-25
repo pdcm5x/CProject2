@@ -62,23 +62,24 @@ int main(int argc, char *argv[]) {
       termNanoseconds -= 1000000000;
    }
 
-   unsigned int startSeconds = clock->seconds;
-   unsigned int startNanoseconds = clock->nanoseconds;
-
+   unsigned int lastSeconds = clock->seconds;
+   unsigned int lastNanoseconds = clock->nanoseconds;
+   unsigned int passedSeconds = 0;
    while (1) {
       //Check to stop loop
-      if (clock->seconds > termSeconds || (clock->nanoseconds > termNanoseconds && clock->seconds == termSeconds)) {
+      if (clock->seconds > termSeconds || (clock->nanoseconds >= termNanoseconds && clock->seconds == termSeconds)) {
          printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
-         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termNanoseconds, termSeconds);
+         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoSeconds);
          printf("--Terminating\n");
          break;
       }
       //Check if a second has passed.
-      if (clock->seconds > startSeconds) {
+      if (clock->seconds - lastSeconds >= 1) {
+         passedSeconds += clock->seconds - lastSeconds;
          printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
-         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termNanoseconds, termSeconds);
-         printf("--%d seconds have passed since starting\n", clock->seconds);
-         clock->seconds = startSeconds;
+         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoSeconds);
+         printf("--%u seconds have passed since starting\n", passedSeconds);
+         lastSeconds = clock->seconds;
       }
    }
    shmdt(clock);
