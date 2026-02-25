@@ -3,7 +3,16 @@
 //
 #include "clock.h"
 #include "pcb.h"
-#define MAX_PROCS = 20
+#include "shared.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#define MAX_PROCS 20
 #define BILLION 1000000000
 /*
    *increment clock function (clock) {
@@ -88,7 +97,7 @@ int main(int argc, char   *argv[]) {
                processTable[i].occupied = 1;
                processTable[i].pid = pid;
                processTable[i].startSeconds = clock->seconds;
-               processTable[i].startNanoseconds = clock->nanoseconds;
+               processTable[i].startNano = clock->nanoseconds;
                break;
             }
          }
@@ -114,7 +123,7 @@ int main(int argc, char   *argv[]) {
          printf("OSS PID:%d SysClockS:%u SysClockNano:%u\n",getpid(),clock->seconds,clock->nanoseconds);
       }
    }
-   printf("OSS terminating\n")
+   printf("OSS terminating\n");
    shmdt(clock);
    shmctl(shmid, IPC_RMID, NULL);
    return 0;
