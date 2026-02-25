@@ -49,6 +49,20 @@ void incrementClock(Clock *clock) {
    }
 }
 int main(int argc, char   *argv[]) {
+   int totalToLaunch = atoi(argv[1]);
+   int simToLaunch = atoi(argv[2]);
+   printf("OSS starting PID:%d PPID:%d\n", getpid(), getppid());
+   //Shared memory
+   int shmid = shmget(SHM_KEY, SHM_SIZE, IPC_CREAT | SHM_PERM);
+   if (shmid == -1) {
+      perror("shmget failed");
+      exit(1);
+   }
+   Clock *clock = (Clock *)shmat(shmid, NULL, 0);
+   if (clock == (Clock *)-1) {
+      perror("shmat failed");
+      exit(1);
+   }
 
    return 0;
 }
