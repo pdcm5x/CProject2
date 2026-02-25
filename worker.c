@@ -1,6 +1,10 @@
 //
 // Created by Paul Corbin on 2/24/2026.
 //
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/shm.h>
 #include "clock.h"
 #include "shared.h"
 /*
