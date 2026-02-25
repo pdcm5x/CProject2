@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
    printf("Interval: %d seconds, %d nanoseconds\n", seconds, nanoseconds);
 
 
-   int shmid = shmget(SHM_KEY, SHM_SIZE, IPC_CREAT | SHM_PERM);
+   int shmid = shmget(SHM_KEY, SHM_SIZE, SHM_PERM);
    Clock *clock = (Clock *)shmat(shmid, NULL, 0);
 
    unsigned int termSeconds = clock->seconds + seconds;
