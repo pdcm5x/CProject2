@@ -10,12 +10,13 @@
  *}
  *
  *main{
+  *int shared memory id = shmget()
   *int max total processes
   *int simultaneously run
   *int launched
   *int currently running
   *print oss pid
-  *initialize clock
+  *initialize clock in shared memory
   *processtable[max processes]
    *while launched < total  {
    *increment clock
@@ -35,6 +36,6 @@
    *}
   *}
   *print oss is done
-  *
+  *delete shared memory
  *}
  */
