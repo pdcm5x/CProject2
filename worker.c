@@ -52,8 +52,15 @@ int main(int argc, char *argv[]) {
 
 
    int shmid = shmget(SHM_KEY, SHM_SIZE, SHM_PERM);
+   if (shmid == -1) {
+      perror("shmget failed");
+      exit(1);
+   }
    Clock *clock = (Clock *)shmat(shmid, NULL, 0);
-
+   if (clock == (void *) -1) {
+      perror("shmat failed");
+      exit(1);
+   }
    unsigned int termSeconds = clock->seconds + seconds;
    unsigned int termNanoseconds = clock->nanoseconds + nanoseconds;
 
@@ -63,13 +70,12 @@ int main(int argc, char *argv[]) {
    }
 
    unsigned int lastSeconds = clock->seconds;
-   unsigned int lastNanoseconds = clock->nanoseconds;
    unsigned int passedSeconds = 0;
    while (1) {
       //Check to stop loop
       if (clock->seconds > termSeconds || (clock->nanoseconds >= termNanoseconds && clock->seconds == termSeconds)) {
          printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
-         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoSeconds);
+         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoseconds);
          printf("--Terminating\n");
          break;
       }
@@ -77,7 +83,7 @@ int main(int argc, char *argv[]) {
       if (clock->seconds - lastSeconds >= 1) {
          passedSeconds += clock->seconds - lastSeconds;
          printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
-         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoSeconds);
+         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termSeconds, termNanoseconds);
          printf("--%u seconds have passed since starting\n", passedSeconds);
          lastSeconds = clock->seconds;
       }
