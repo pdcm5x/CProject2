@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 
    while (1) {
       //Check to stop loop
-      if (clock->seconds > termSeconds || (clock->nanoseconds > termNanoseconds && clock->seconds == termSeconds) {
+      if (clock->seconds > termSeconds || (clock->nanoseconds > termNanoseconds && clock->seconds == termSeconds)) {
          printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
          printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termNanoseconds, termSeconds);
          printf("--Terminating\n");
