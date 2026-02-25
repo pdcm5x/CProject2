@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
    unsigned int termSeconds = clock->seconds + seconds;
    unsigned int termNanoseconds = clock->nanoseconds + nanoseconds;
 
-   if (termNanoseconds > 1000000000) {
+   if (termNanoseconds >= 1000000000) {
       termSeconds += 1;
       termNanoseconds -= 1000000000;
    }
