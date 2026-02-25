@@ -5,22 +5,20 @@
 #include "pcb.h"
 #include "shared.h"
 #include <stdio.h>
-#include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #define MAX_PROCS 20
 #define BILLION 1000000000
 
 PCB processTable[MAX_PROCS];
 
-// increment clock function
 void incrementClock(Clock *clock) {
-    clock->nanoseconds += 10000000; // increment by 10 ms
+    clock->nanoseconds += 10000000;  // Increment by 10 ms
     if (clock->nanoseconds >= BILLION) {
         clock->nanoseconds -= BILLION;
         clock->seconds++;
@@ -28,66 +26,40 @@ void incrementClock(Clock *clock) {
 }
 
 int main(int argc, char *argv[]) {
-    int opt;
-    int n = 5;           // max simultaneous children (-n)
-    int s = MAX_PROCS;   // total processes to launch (per spec)
-    float t = 5.0;       // time limit in seconds (-t)
-    float i_interval = 0.5; // interval between launches (-i)
-
-    // parse command-line options
-    while ((opt = getopt(argc, argv, "n:t:i:h")) != -1) {
-        switch (opt) {
-            case 'n': n = atoi(optarg); break;
-            case 't': t = atof(optarg); break;
-            case 'i': i_interval = atof(optarg); break;
-            case 'h':
-            default:
-                printf("Usage: %s [-n max_simultaneous] [-t time_limit] [-i launch_interval]\n", argv[0]);
-                exit(0);
-        }
-    }
+    int n = 5;           // max simultaneous children
+    int s = 2;           // initial children
+    float t = 5.0;       // time limit in seconds
+    float i_interval = 0.5; // interval between launches
 
     printf("OSS starting PID:%d PPID:%d\n", getpid(), getppid());
 
-    // initialize shared memory
+    // Shared memory setup
     int shmid = shmget(SHM_KEY, SHM_SIZE, IPC_CREAT | SHM_PERM);
-    if (shmid == -1) {
-        perror("shmget failed");
-        exit(1);
-    }
+    if (shmid == -1) { perror("shmget failed"); exit(1); }
+
     Clock *clock = (Clock *)shmat(shmid, NULL, 0);
-    if (clock == (Clock *)-1) {
-        perror("shmat failed");
-        exit(1);
-    }
+    if (clock == (Clock *)-1) { perror("shmat failed"); exit(1); }
 
-    clock->nanoseconds = 0;
     clock->seconds = 0;
-    memset(processTable, 0, MAX_PROCS * sizeof(PCB));
+    clock->nanoseconds = 0;
+    memset(processTable, 0, sizeof(processTable));
 
-    int launched = 0;
-    int running = 0;
+    int launched = 0, running = 0;
     unsigned int lastLaunchSec = 0, lastLaunchNano = 0;
 
-    // main loop: launch processes until all total processes are launched
     while (launched < s || running > 0) {
-        incrementClock(clock); // increment simulated clock
+        incrementClock(clock);
 
-        // calculate elapsed time since last launch
+        // Check launch interval
         unsigned long lastLaunch = lastLaunchSec * BILLION + lastLaunchNano;
-        unsigned long currentTime = clock->seconds * BILLION + clock->nanoseconds;
-        unsigned long elapsedSinceLastLaunch = currentTime - lastLaunch;
+        unsigned long now = clock->seconds * BILLION + clock->nanoseconds;
+        unsigned long elapsed = now - lastLaunch;
 
-        // check if we can launch another program
-        if (launched < s && running < n && elapsedSinceLastLaunch >= (unsigned long)(i_interval * BILLION)) {
+        if (launched < s && running < n && elapsed >= (unsigned long)(i_interval * BILLION)) {
             pid_t pid = fork();
-            if (pid == -1) {
-                perror("fork failed");
-                exit(1);
-            }
+            if (pid == -1) { perror("fork failed"); exit(1); }
 
             if (pid == 0) {
-                // child process executes worker
                 int maxSec = (int)t;
                 int maxNano = (int)((t - maxSec) * BILLION);
                 char secStr[16], nanoStr[16];
@@ -98,7 +70,7 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
 
-            // update PCB table
+            // Update PCB
             for (int i = 0; i < MAX_PROCS; i++) {
                 if (!processTable[i].occupied) {
                     processTable[i].occupied = 1;
@@ -108,7 +80,7 @@ int main(int argc, char *argv[]) {
                     processTable[i].endingTimeSeconds = clock->seconds + (int)t;
                     processTable[i].endingTimeNano = clock->nanoseconds + (int)((t - (int)t) * BILLION);
                     if (processTable[i].endingTimeNano >= BILLION) {
-                        processTable[i].endingTimeSeconds += 1;
+                        processTable[i].endingTimeSeconds++;
                         processTable[i].endingTimeNano -= BILLION;
                     }
                     break;
@@ -121,7 +93,6 @@ int main(int argc, char *argv[]) {
             launched++;
         }
 
-        // check for any terminated child processes
         int status;
         pid_t termPid;
         while ((termPid = waitpid(-1, &status, WNOHANG)) > 0) {
@@ -134,7 +105,6 @@ int main(int argc, char *argv[]) {
             running--;
         }
 
-        // print clock every 0.5s
         if (clock->nanoseconds % 500000000 == 0) {
             printf("OSS PID:%d SysClockS:%u SysClockNano:%u\n", getpid(), clock->seconds, clock->nanoseconds);
         }
@@ -143,6 +113,5 @@ int main(int argc, char *argv[]) {
     printf("OSS terminating\n");
     shmdt(clock);
     shmctl(shmid, IPC_RMID, NULL);
-
     return 0;
 }
