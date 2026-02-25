@@ -63,6 +63,59 @@ int main(int argc, char   *argv[]) {
       perror("shmat failed");
       exit(1);
    }
-
+   clock->nanoseconds = 0;
+   clock->seconds = 0;
+   memset(processTable, 0, MAX_PROCS * sizeof(PCB));
+   int launched = 0;
+   int running = 0;
+   while (launched < totalToLaunch || running > 0) {
+      incrementClock(clock);
+      //Check if we can launch another program
+      if (launched < totalToLaunch && running < simToLaunch) {
+         pid_t pid = fork();
+         if (pid == -1) {
+            perror("fork failed");
+            exit(1);
+         }
+         if (pid == 0) {
+            execl("./worker", "worker", "2", "0", NULL);
+            perror("execl failed");
+            exit(1);
+         }
+         //Update PCB
+         for (int i = 0; i < MAX_PROCS; i++) {
+            if (!processTable[i].occupied) {
+               processTable[i].occupied = 1;
+               processTable[i].pid = pid;
+               processTable[i].startSeconds = clock->seconds;
+               processTable[i].startNanoseconds = clock->nanoseconds;
+               break;
+            }
+         }
+         running++;
+         launched++;
+      }
+      int status;
+      pid_t termPid = waitpid(-1, &status, WNOHANG);
+      if (termPid == -1) {
+         perror("waitpid failed");
+         exit(1);
+      }
+      if (termPid > 0) {
+         for (int i = 0; i < MAX_PROCS; i++) {
+            if (processTable[i].pid == termPid) {
+               processTable[i].occupied = 0;
+               break;
+            }
+         }
+         running--;
+      }
+      if (clock -> nanoseconds % 500000000 == 0) {
+         printf("OSS PID:%d SysClockS:%u SysClockNano:%u\n",getpid(),clock->seconds,clock->nanoseconds);
+      }
+   }
+   printf("OSS terminating\n")
+   shmdt(clock);
+   shmctl(shmid, IPC_RMID, NULL);
    return 0;
 }
