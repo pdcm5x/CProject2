@@ -1,17 +1,18 @@
 //
 // Created by Paul Corbin on 2/24/2026.
 //
-#include "clock.h"
-#include "pcb.h"
-#include "shared.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
+#include <getopt.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
+#include "clock.h"
+#include "pcb.h"
+#include "shared.h"
 #define MAX_PROCS 20
 #define BILLION 1000000000
 
@@ -26,12 +27,29 @@ void incrementClock(Clock *clock) {
 }
 
 int main(int argc, char *argv[]) {
-    int n = 5;           // max simultaneous children
-    int s = 2;           // initial children
-    float t = 5.0;       // time limit in seconds
-    float i_interval = 0.5; // interval between launches
+    int opt;
+    int n = 5;          // max simultaneous children (-n)
+    int s = 2;          // initial children (-s)
+    float t = 5.0;      // max runtime for worker (-t)
+    float i_interval = 0.5; // interval between launches (-i)
+
+    // Parse command-line arguments
+    while ((opt = getopt(argc, argv, "n:s:t:i:h")) != -1) {
+        switch (opt) {
+            case 'n': n = atoi(optarg); break;
+            case 's': s = atoi(optarg); break;
+            case 't': t = atof(optarg); break;
+            case 'i': i_interval = atof(optarg); break;
+            case 'h':
+            default:
+                printf("Usage: %s [-n max_simultaneous] [-s initial_children] "
+                       "[-t max_worker_runtime] [-i launch_interval]\n", argv[0]);
+                exit(0);
+        }
+    }
 
     printf("OSS starting PID:%d PPID:%d\n", getpid(), getppid());
+    printf("Parameters: n=%d, s=%d, t=%.2f, i=%.2f\n", n, s, t, i_interval);
 
     // Shared memory setup
     int shmid = shmget(SHM_KEY, SHM_SIZE, IPC_CREAT | SHM_PERM);

@@ -1,0 +1,8 @@
+Name: Paul Corbin
+Date: 02/24/2026
+Environment: CLion, Ubuntu 22.04
+How to compile the project:
+    Type 'make'
+Example of how to run the project:
+./oss -n 4 -t 3 -i 1
+I had some issues with headers and error handling. Pasting my source code with the output from the make command ChatGPT provided the appropriate headers and found small syntax issues
