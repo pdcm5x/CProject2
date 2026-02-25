@@ -62,6 +62,21 @@ int main(int argc, char *argv[]) {
    unsigned int startNanoseconds = clock->nanoseconds;
 
    while (1) {
-      if ()
+      //Check to stop loop
+      if (clock->seconds > termSeconds || (clock->nanoseconds > termNanoseconds && clock->seconds == termSeconds) {
+         printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
+         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termNanoseconds, termSeconds);
+         printf("--Terminating\n");
+         break;
+      }
+      //Check if a second has passed.
+      if (clock->seconds > startSeconds) {
+         printf("WORKER PID:%d PPID:%d\n", getpid(), getppid());
+         printf("SysClockS: %u SysclockNano: %u TermTimeS: %u TermTimeNano: %u\n", clock->seconds, clock->nanoseconds, termNanoseconds, termSeconds);
+         printf("--%d seconds have passed since starting\n", clock->seconds);
+         clock->seconds = startSeconds;
+      }
    }
+   shmdt(clock);
+   return 0;
 }
